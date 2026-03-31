@@ -1,0 +1,147 @@
+B1
+Libraries->Add library->MySQL JDBC Driver->Add library
+Services->Database->Driver-> MySQL (Connector/J driver)->Connect Using->Next
+Create Table Student in Wamp->New Database 784->New Table->Student
+CREATE TABLE `784`.`Student` (
+`Regno` INT( 10 ) NOT NULL ,
+`Name` VARCHAR( 50 ) NOT NULL ,
+`DOB` VARCHAR( 50 ) NOT NULL ,
+`Address` VARCHAR( 50 ) NOT NULL ,
+`Class` VARCHAR( 50 ) NOT NULL ,
+`Course` VARCHAR( 50 ) NOT NULL 
+)
+OR
+jdbc:mysql://localhost:3306/mysql [root on Default schema]->Click on + symbol->784(database)->Tables->Create Table->Create table student with fields
+package b1;
+import java.sql.*;
+import java.util.*;
+public class B1 {
+    public static void main(String[] args) throws ClassNotFoundException {
+        try{
+               Scanner sc = new Scanner(System.in);
+               int ch=5,regno;
+               String sname,sclass,sadd,course,dob,sql;
+               Class.forName("com.mysql.jdbc.Driver");
+               Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/784","root","");
+               java.sql.Statement stmt = con.createStatement();
+               ResultSet rs;
+               do{
+                   System.out.println("     MENU        ");
+                   System.out.println("------------------");
+                   System.out.println("1. Add Student");
+                   System.out.println("2. Delete Student");
+                   System.out.println("3. Update Student");
+                   System.out.println("4. Search Student");
+                   System.out.println("5. Exit");
+                   System.out.println("------------------");
+                   System.out.println("Enter Your Choice: ");
+                   ch = sc.nextInt();
+                   switch(ch){
+                        case 1:
+                            System.out.println("----Enter Student Details");
+                            System.out.println("Reg. No :");
+                            regno = sc.nextInt();
+                            sc.nextLine();
+                            sql = "SELECT Regno FROM student WHERE Regno = " + regno;
+                            rs = stmt.executeQuery(sql);
+                            if (rs.next()) {
+                                System.out.println("Registration number already exists. Please choose a different one.");
+                                break;
+                            }
+                            System.out.println("Name :");
+                            sname = sc.nextLine();
+                            System.out.println("DOB[yyyy-mm-dd]:");
+                            dob = sc.nextLine();
+                            System.out.println("Address");
+                            sadd = sc.nextLine();
+                            System.out.println("Class:");
+                            sclass = sc.nextLine();
+                            System.out.println("Course :");
+                            course = sc.nextLine();
+                            sql = "INSERT INTO student(Regno,Name,DOB,Address,Class,Course)" + "VALUES("+regno+",'"+sname+"','"+dob+"','"+sadd+"','"+sclass+"','"+course+"')";
+                            int result = stmt.executeUpdate(sql);
+                            if(result == 1){
+                                System.out.println("Student Details are saved");
+                            }else {
+                                System.out.print("Error! While saving student details");
+                            }
+                            break;
+                        case 2:
+                            System.out.println("Enter Student Reg No.");
+                            regno = sc.nextInt();
+                            sql = "SELECT COUNT(*) FROM student WHERE Regno = "+regno;
+                            rs =  stmt.executeQuery(sql);
+                            rs.next();
+                            if(rs.getInt(1)==1){
+                                sql = "DELETE FROM student WHERE Regno ="+regno;
+                                int res = stmt.executeUpdate(sql);
+                                if(res == 1){
+                                    System.out.println("Record Deleted");
+                                }else{
+                                    System.out.println(" Error! While deleting student record");
+                                }
+                            }else{
+                                System.out.println("Record Not Found");
+                            }
+                            break;
+                        case 3:
+                            System.out.println("Enter Register No.");
+                            regno = sc.nextInt();
+                            sc.nextLine();
+                            sql = "SELECT COUNT(*) FROM student WHERE Regno = "+regno;
+                            rs =  stmt.executeQuery(sql);
+                            rs.next();
+                            if(rs.getInt(1)==1){
+                                sql = "SELECT Address FROM student WHERE Regno = "+regno;
+                                rs= stmt.executeQuery(sql);
+                                rs.next();
+                                System.out.println("Old Address is :"+rs.getString(1));
+                                System.out.println("Enter New Address:");
+                                String add = sc.nextLine();
+                                if(add.length()>0){
+                                    sql = "UPDATE student SET address = '"+add+"' WHERE Regno = "+regno;
+                                    if(stmt.executeUpdate(sql)== 1){
+                                        System.out.println("Address updated");
+                                    }else{
+                                        System.out.println("Error! While updating address");
+                                    }
+                                }
+                            }else{
+                                System.out.println("Record Not Found");
+                            }
+                            break;
+                        case 4:
+                            System.out.println("Enter Reg No.");
+                            regno = sc.nextInt();
+                            sql = "SELECT * from student where Regno = "+regno;
+                            rs = stmt.executeQuery(sql);
+                            if(rs.next()){
+                                System.out.println("Student details are");
+                                System.out.println("-------------------");
+                                System.out.println("Reg No:"+rs.getInt(1));
+                                System.out.println("Name:"+rs.getString(2));
+                                System.out.println("DOB:"+rs.getString(3));
+                                System.out.println("Address:"+rs.getString(4));
+                                System.out.println("Class:"+rs.getString(5));
+                                System.out.println("Course:"+rs.getString(6));
+                                System.out.println(" ----------------------");
+                            }else{
+                                System.out.println("Record Not Found");
+                            }
+                            break;
+                        case 5:
+                            stmt.close();
+                            con.close();
+                            System.out.println("Thank You");
+                            return;
+                        default:
+                            System.out.println("Wrong Choice...\n Try again");
+                   }
+               }while(true);
+        }catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+}
+
+ 
