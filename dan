@@ -1,0 +1,112 @@
+from ultralytics import YOLO
+import cv2
+import math
+import time
+import os
+
+# ------------------- SETUP -------------------
+model = YOLO("yolov8n.pt")                                     #pre trained model
+cap = cv2.VideoCapture("test2.mp4")                         #open video (for webcam   )
+# cap = cv2.VideoCapture(0)
+
+THRESHOLD = 120   # distance threshold (adjust)                
+SAVE_PATH = "violations"
+
+# Create folder if not exists
+if not os.path.exists(SAVE_PATH):
+    os.makedirs(SAVE_PATH)
+
+frame_count = 0
+total_risk_score = 0
+
+# ------------------- MAIN LOOP -------------------
+while True:                                                     #reads single frame per sec and stop reading when video ends 
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    frame_count += 1                                            #next frame
+
+    results = model(frame, device=0)                                   # result  is sent to YOLO for training (device=0 for gpu)
+    annotated = results[0].plot()                               #Draws bounding boxes automatically.
+
+    workers = []                                        
+    machines = []
+
+    # ------------------- DETECTION -------------------
+    for box in results[0].boxes:                                 #frmae inside result 
+        cls = int(box.cls[0])
+        label = model.names[cls]
+
+        x1, y1, x2, y2 = map(int, box.xyxy[0])                  # for bounding box for objects
+        cx = (x1 + x2) // 2                                     #centre of both the objects
+        cy = (y1 + y2) // 2
+
+        if label == "person":                                    #add labels to calculate distaance betweeen them
+            workers.append((cx, cy))
+        elif label in ["truck", "bus", "car"]:
+            machines.append((cx, cy))
+
+    danger_detected = False                                      # by defalut danger is false
+
+    # ------------------- DISTANCE + DANGER -------------------
+    for w in workers:
+        for m in machines:
+            distance = math.sqrt((w[0] - m[0])**2 + (w[1] - m[1])**2)         #ditance formula  in pixels
+            print(distance)
+
+            if distance < THRESHOLD:                                           #calculation
+                danger_detected = True
+                total_risk_score += 5
+
+                # Draw line
+                cv2.line(annotated, w, m, (0, 0, 255), 2)                      #red bounding box
+
+                # Draw circles
+                cv2.circle(annotated, w, 5, (0, 255, 0), -1)                    #green for worker
+                cv2.circle(annotated, m, 5, (255, 0, 0), -1)                    #blue for  machines 
+
+                # Show warning
+                cv2.putText(annotated, "DANGER ZONE!",                         #diplaying of dangerzone alert
+                            (50, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1, (0, 0, 255), 3)
+
+                # Save frame
+                timestamp = int(time.time())                                                #storing time and frame
+                filename = f"{SAVE_PATH}/danger_{timestamp}_{frame_count}.jpg" 
+                cv2.imwrite(filename, annotated)
+
+    # ------------------- RISK LEVEL -------------------
+    if total_risk_score == 0:                                                             #adding risk score and colors for each
+        risk_level = "LOW"
+        color = (0, 255, 0)
+    elif total_risk_score <= 20:
+        risk_level = "MEDIUM"
+        color = (0, 255, 255)
+    else:
+        risk_level = "HIGH"
+        color = (0, 0, 255)
+
+    # Display risk score
+    cv2.putText(annotated, f"Risk Score: {total_risk_score}",                             #dipslaying risk score 
+                (50, 100),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8, color, 2)
+
+    cv2.putText(annotated, f"Risk Level: {risk_level}",                                            
+                (50, 140),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8, color, 2)
+
+    # Resize for display
+    annotated = cv2.resize(annotated, (1200, 900))                                           #resizze display
+
+    cv2.imshow("Danger Zone Detection", annotated)
+
+    if cv2.waitKey(1) == 27:                                                             
+        break
+
+# ------------------- CLEANUP -------------------
+cap.release()
+cv2.destroyAllWindows()
