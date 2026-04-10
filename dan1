@@ -1,0 +1,45 @@
+
+import cv2
+from ultralytics import YOLO
+
+model = YOLO("runs/detect/equipment_train_v2/weights/best.pt")
+
+cap = cv2.VideoCapture("tetr.mp4")
+cap = cv2.VideoCapture("teta.mp4")
+# cap = cv2.VideoCapture("teac.mp4")
+# cap = cv2.VideoCapture("test4.mp4")
+# cap = cv2.VideoCapture("test2.mp4")
+# cap = cv2.VideoCapture("test1.mp4")
+# cap = cv2.VideoCapture("tero.mp4")
+# cap = cv2.VideoCapture("tefl.mp4")
+# cap = cv2.VideoCapture("teex.mp4")
+# cap = cv2.VideoCapture("tecm.mp4")
+# cap = cv2.VideoCapture("tebu.mp4")
+
+# Desired display size
+display_width = 940
+display_height = 500
+
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    results = model.predict(
+        frame,
+        classes=[0,1,2,4,6,8,9,10,12,14,16],
+        verbose=False
+    )
+
+    annotated_frame = results[0].plot()
+
+    #  Resize ONLY for display
+    resized_frame = cv2.resize(annotated_frame, (display_width, display_height))
+
+    cv2.imshow("YOLO", resized_frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
